@@ -8,19 +8,20 @@
 - Проверка доступности потоков
 - Мониторинг через systemd
 
----
-
 ## 🚀 Установка
-```bash
+
+
 git clone https://github.com/<your-repo>/internet-radio.git
 cd internet-radio
 chmod +x install.sh
 ./install.sh
-После установки сервис автоматически запустится.
+После установки сервис автоматически запустится. 
+
 
 ## 📋 Команды управления
 
 Все команды выполняются через radioctl:
+
 
 sudo radioctl list           # список станций
 sudo radioctl status         # статус проигрывателя
@@ -31,27 +32,28 @@ sudo radioctl check          # проверка доступности всех 
 sudo radioctl stop           # остановить проигрыватель
 sudo radioctl play           # запустить снова
 
+
 ## 🔧 Управление сервисом
 
 Проверка логов:
 
-journalctl -u radio.service -f
+```journalctl -u radio.service -f```
 
 
 Перезапуск вручную:
 
-sudo systemctl restart radio.service
+```sudo systemctl restart radio.service```
 
 
 Отключение автозапуска:
 
-sudo systemctl disable --now radio.service
+```sudo systemctl disable --now radio.service```
 
 ## 📡 Добавление своих станций
 
 Файл со станциями находится здесь:
 
-/etc/radio/stations.list
+```/etc/radio/stations.list
 
 
 Формат:
