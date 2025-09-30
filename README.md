@@ -16,7 +16,7 @@
 **Одной командой:**
 
 ```bash
-curl -sSL [https://github.com/v/radio/blob/main/install-radio-system.sh] | sudo bash
+curl -sSL https://github.com/v/radio/blob/main/install-radio-system.sh | sudo bash
 Или вручную:
 
 bash
