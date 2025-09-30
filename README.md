@@ -16,12 +16,12 @@
 **Одной командой:**
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/yourusername/radio-system/main/install-radio-system.sh | sudo bash
+curl -sSL [https://github.com/v/radio/blob/main/install-radio-system.sh] | sudo bash
 Или вручную:
 
 bash
-git clone https://github.com/yourusername/radio-system.git
-cd radio-system
+git clone https://github.com/AlexyeBezyazykov/radio.git
+cd radio
 sudo ./install-radio-system.sh
 🎛️ Управление
 После установки используйте команду radioctl:
