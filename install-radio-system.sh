@@ -77,8 +77,12 @@ setup_environment() {
         print_info "Пользователь $RADIO_USER уже существует"
     fi
     
-    # Создаем структуру директорий
-    mkdir -p "$RADIO_HOME"/{scripts,logs,config,backups}
+    # ИСПРАВЛЕНО: Создаем структуру директорий правильно
+    mkdir -p "$RADIO_HOME/scripts"
+    mkdir -p "$RADIO_HOME/logs"
+    mkdir -p "$RADIO_HOME/config"
+    mkdir -p "$RADIO_HOME/backups"
+    
     chown -R "$RADIO_USER":"$RADIO_USER" "$RADIO_HOME"
     chmod 755 "$RADIO_HOME"
     
@@ -99,12 +103,11 @@ CURRENT_STATION_INDEX=0
 
 RADIO_STATIONS=(
     "Record|https://radiorecord.hostingradio.ru/rr_main96.aacp"
-    "Chill-Out|https://radiorecord.hostingradio.ru/chil96.aacp"
-    "Chill House|https://radiorecord.hostingradio.ru/chillhouse96.aacp"
-    "Summer Lounge|https://radiorecord.hostingradio.ru/summerlounge96.aacp"
-    "Summer Dance|https://radiorecord.hostingradio.ru/summerparty96.aacp"
-    "Lo-Fi House|https://radiorecord.hostingradio.ru/lofihouse96.aacp"
-#   "Christmas|https://radiorecord.hostingradio.ru/christmas96.aacp"
+    "Europa Plus|http://ep256.hostingradio.ru:8052/europaplus256.mp3"
+    "Radio Record|http://air2.radiorecord.ru:805/rr_320"
+    "DFM|http://dfm.hostingradio.ru/dfm96.aacp"
+    "Relax FM|http://air2.relaxfm.ru:9000/relax_320"
+    "FIP|http://icecast.radiofrance.fr/fip-hifi.aac"
 )
 EOF
 
@@ -196,7 +199,12 @@ LOG_FILE="$LOG_DIR/radio-controller.log"
 CONTROL_PIPE="/tmp/radio-control.pipe"
 
 # Импорт конфигурации
-source "$CONFIG_FILE"
+if [ -f "$CONFIG_FILE" ]; then
+    source "$CONFIG_FILE"
+else
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - ОШИБКА: Конфиг не найден: $CONFIG_FILE" | tee -a "$LOG_FILE"
+    exit 1
+fi
 
 # Переменные
 CURRENT_STATION_INDEX=0
@@ -388,7 +396,10 @@ start_command_loop() {
 initialize() {
     log_message "=== ИНИЦИАЛИЗАЦИЯ РАДИО-КОНТРОЛЛЕРА ==="
     
-    mkdir -p "$LOG_DIR" "$CONFIG_DIR"
+    # ИСПРАВЛЕНО: Создаем директории правильно
+    mkdir -p "$LOG_DIR"
+    mkdir -p "$CONFIG_DIR"
+    
     load_state
     setup_control_pipe
     log_message "Контроллер инициализирован. Текущая станция: $CURRENT_STATION_INDEX"
@@ -429,160 +440,6 @@ main() {
 }
 
 main
-EOF
-
-    # Создаем утилиту командной строки
-    cat > /usr/local/bin/radioctl << 'EOF'
-#!/bin/bash
-
-CONTROL_PIPE="/tmp/radio-control.pipe"
-CONFIG_DIR="/opt/radio-player/config"
-STATE_FILE="$CONFIG_DIR/current-state.conf"
-
-send_command() {
-    if [ ! -p "$CONTROL_PIPE" ]; then
-        echo "Ошибка: Radio контроллер не запущен"
-        echo "Запустите: sudo systemctl start vlc-radio.service"
-        return 1
-    fi
-    
-    echo "$*" > "$CONTROL_PIPE"
-    sleep 0.5
-}
-
-show_status() {
-    if [ ! -p "$CONTROL_PIPE" ]; then
-        echo "❌ Radio контроллер не запущен"
-        echo "Запустите: sudo systemctl start vlc-radio.service"
-        return 1
-    fi
-    
-    if [ -f "$STATE_FILE" ]; then
-        source "$STATE_FILE" 2>/dev/null
-        source "$CONFIG_DIR/radio-stations.conf" 2>/dev/null
-        
-        echo "🎵 Статус радио:"
-        echo "   Станция: ${CURRENT_STATION_NAME:-Неизвестно}"
-        echo "   Индекс: ${CURRENT_STATION_INDEX:-0}/$(( ${#RADIO_STATIONS[@]} - 1 ))"
-        echo "   Состояние: $([ "$IS_PLAYING" = "true" ] && echo "▶️ Воспроизведение" || echo "⏸️ Остановлено")"
-        echo "   URL: ${CURRENT_STATION_URL:-Неизвестно}"
-    else
-        echo "⚠️ Состояние недоступно"
-    fi
-}
-
-show_stations() {
-    source "$CONFIG_DIR/radio-stations.conf" 2>/dev/null || {
-        echo "Ошибка: Не удалось загрузить конфигурацию станций"
-        return 1
-    }
-    
-    echo "📻 Доступные радиостанции:"
-    for i in "${!RADIO_STATIONS[@]}"; do
-        IFS='|' read -r name url <<< "${RADIO_STATIONS[$i]}"
-        marker=""
-        [ "$i" -eq "${CURRENT_STATION_INDEX:-0}" ] && marker="← текущая"
-        echo "   $i: $name $marker"
-    done
-}
-
-case "$1" in
-    start)
-        echo "▶️ Запуск радио..."
-        send_command "start"
-        show_status
-        ;;
-    stop)
-        echo "⏹️ Остановка радио..."
-        send_command "stop"
-        show_status
-        ;;
-    play)
-        if [ -n "$2" ]; then
-            echo "🎵 Переключение на станцию #$2..."
-            send_command "switch $2"
-        else
-            echo "▶️ Запуск воспроизведения..."
-            send_command "start"
-        fi
-        show_status
-        ;;
-    next)
-        echo "⏭️ Следующая станция..."
-        send_command "next"
-        show_status
-        ;;
-    prev)
-        echo "⏮️ Предыдущая станция..."
-        send_command "prev"
-        show_status
-        ;;
-    switch)
-        if [ -z "$2" ]; then
-            echo "Ошибка: Укажите номер станции"
-            echo "Пример: radioctl switch 2"
-            exit 1
-        fi
-        echo "🔄 Переключение на станцию #$2..."
-        send_command "switch $2"
-        show_status
-        ;;
-    status)
-        show_status
-        ;;
-    list)
-        show_stations
-        ;;
-    restart)
-        echo "🔄 Перезапуск радио..."
-        send_command "restart"
-        show_status
-        ;;
-    logs)
-        tail -f /opt/radio-player/logs/radio-controller.log
-        ;;
-    player-logs)
-        tail -f /opt/radio-player/logs/radio-player.log
-        ;;
-    monitor)
-        watch -n 2 "radioctl status"
-        ;;
-    daemon-status)
-        systemctl status vlc-radio.service
-        ;;
-    daemon-restart)
-        systemctl restart vlc-radio.service
-        echo "✅ Демон перезапущен"
-        ;;
-    *)
-        echo "🎛️  Управление радио-сервисом"
-        echo ""
-        echo "Основные команды:"
-        echo "  start           - запустить воспроизведение"
-        echo "  stop            - остановить воспроизведение"
-        echo "  play [N]        - воспроизвести (станцию N)"
-        echo "  next            - следующая станция"
-        echo "  prev            - предыдущая станция"
-        echo "  switch <N>      - переключиться на станцию N"
-        echo ""
-        echo "Информация:"
-        echo "  status          - текущий статус"
-        echo "  list            - список станций"
-        echo "  logs            - логи контроллера"
-        echo "  player-logs     - логи плеера"
-        echo "  monitor         - мониторинг статуса"
-        echo ""
-        echo "Управление демоном:"
-        echo "  daemon-status   - статус systemd службы"
-        echo "  daemon-restart  - перезапуск службы"
-        echo ""
-        echo "Примеры:"
-        echo "  radioctl play 2     - играть станцию #2"
-        echo "  radioctl next       - следующая станция"
-        echo "  radioctl status     - показать статус"
-        exit 1
-        ;;
-esac
 EOF
 
     print_success "Конфигурационные файлы созданы"
