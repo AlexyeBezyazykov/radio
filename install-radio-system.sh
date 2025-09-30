@@ -99,11 +99,12 @@ CURRENT_STATION_INDEX=0
 
 RADIO_STATIONS=(
     "Record|https://radiorecord.hostingradio.ru/rr_main96.aacp"
-    "Europa Plus|http://ep256.hostingradio.ru:8052/europaplus256.mp3"
-    "Radio Record|http://air2.radiorecord.ru:805/rr_320"
-    "DFM|http://dfm.hostingradio.ru/dfm96.aacp"
-    "Relax FM|http://air2.relaxfm.ru:9000/relax_320"
-    "FIP|http://icecast.radiofrance.fr/fip-hifi.aac"
+    "Chill-Out|https://radiorecord.hostingradio.ru/chil96.aacp"
+    "Chill House|https://radiorecord.hostingradio.ru/chillhouse96.aacp"
+    "Summer Lounge|https://radiorecord.hostingradio.ru/summerlounge96.aacp"
+    "Summer Dance|https://radiorecord.hostingradio.ru/summerparty96.aacp"
+    "Lo-Fi House|https://radiorecord.hostingradio.ru/lofihouse96.aacp"
+#   "Christmas|https://radiorecord.hostingradio.ru/christmas96.aacp"
 )
 EOF
 
