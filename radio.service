@@ -1,0 +1,13 @@
+[Unit]
+Description=Internet Radio Player (PulseAudio)
+After=pulseaudio.service sound.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/radioctl play
+ExecStop=%h/.local/bin/radioctl stop
+RemainAfterExit=yes
+Environment=PULSE_SERVER=unix:/run/user/%U/pulse/native
+
+[Install]
+WantedBy=default.target
