@@ -1,0 +1,81 @@
+#!/bin/bash
+
+CONFIG_DIR="$HOME/.config/radio"
+STATIONS_FILE="$CONFIG_DIR/stations.list"
+CURRENT_FILE="$CONFIG_DIR/current_station"
+PID_FILE="$CONFIG_DIR/radio.pid"
+
+mkdir -p "$CONFIG_DIR"
+
+command -v cvlc >/dev/null 2>&1 || {
+  echo "❌ VLC (cvlc) не найден. Установите: sudo apt install vlc -y"
+  exit 1
+}
+
+play_station() {
+  NAME="$1"
+  URL="$2"
+
+  echo "▶ Запуск: $NAME ($URL)"
+
+  if [ -f "$PID_FILE" ]; then
+    kill "$(cat "$PID_FILE")" 2>/dev/null || true
+  fi
+
+  nohup cvlc -I dummy --quiet "$URL" >/dev/null 2>&1 &
+  echo $! > "$PID_FILE"
+  echo "$NAME|$URL" > "$CURRENT_FILE"
+}
+
+case "$1" in
+  play)
+    if [ ! -f "$STATIONS_FILE" ]; then
+      echo "❌ Нет списка станций"
+      exit 1
+    fi
+
+    LINE=$(head -n 1 "$STATIONS_FILE")
+    NAME="${LINE%%|*}"
+    URL="${LINE##*|}"
+
+    play_station "$NAME" "$URL"
+    ;;
+  stop)
+    if [ -f "$PID_FILE" ]; then
+      kill "$(cat "$PID_FILE")" 2>/dev/null || true
+      rm -f "$PID_FILE"
+      echo "⏹ Радио остановлено"
+    else
+      echo "ℹ Радио не запущено"
+    fi
+    ;;
+  next)
+    mapfile -t STATIONS < "$STATIONS_FILE"
+
+    CURRENT_LINE=0
+    if [ -f "$CURRENT_FILE" ]; then
+      CURRENT=$(cat "$CURRENT_FILE")
+      for i in "${!STATIONS[@]}"; do
+        [[ "${STATIONS[$i]}" == "$CURRENT" ]] && CURRENT_LINE=$i
+      done
+    fi
+
+    NEXT_LINE=$(( (CURRENT_LINE + 1) % ${#STATIONS[@]} ))
+    LINE="${STATIONS[$NEXT_LINE]}"
+
+    NAME="${LINE%%|*}"
+    URL="${LINE##*|}"
+
+    play_station "$NAME" "$URL"
+    ;;
+  status)
+    if [ -f "$PID_FILE" ] && ps -p "$(cat "$PID_FILE")" >/dev/null 2>&1; then
+      echo "▶ Радио играет"
+    else
+      echo "⏹ Радио не играет"
+    fi
+    ;;
+  *)
+    echo "Использование: radioctl {play|stop|next|status}"
+    ;;
+esac
